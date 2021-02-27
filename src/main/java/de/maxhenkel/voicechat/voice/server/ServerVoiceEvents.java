@@ -44,7 +44,6 @@ public class ServerVoiceEvents implements Listener {
         initializePlayerConnection(e.getPlayer());
     }
 
-    @EventHandler
     public void initializePlayerConnection(Player player) {
         if (server == null) {
             return;

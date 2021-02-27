@@ -1,7 +1,7 @@
 package de.maxhenkel.voicechat.net;
 
-import net.minecraft.network.PacketByteBuf;
-
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.UUID;
 
 public class InitPacket {
@@ -52,18 +52,14 @@ public class InitPacket {
         return keepAlive;
     }
 
-    public static InitPacket fromBytes(PacketByteBuf buf) {
-        return new InitPacket(buf.readUuid(), buf.readInt(), buf.readInt(), buf.readInt(), buf.readDouble(), buf.readDouble(), buf.readInt());
-    }
-
-    public void toBytes(PacketByteBuf buf) {
-        buf.writeUuid(secret);
-        buf.writeInt(serverPort);
-        buf.writeInt(sampleRate);
-        buf.writeInt(mtuSize);
+    public void toBytes(DataOutputStream buf) throws IOException {
+        NetUtil.writeUUID(buf, secret);
+        NetUtil.writeVarInt(buf, serverPort);
+        NetUtil.writeVarInt(buf, sampleRate);
+        NetUtil.writeVarInt(buf, mtuSize);
         buf.writeDouble(voiceChatDistance);
         buf.writeDouble(voiceChatFadeDistance);
-        buf.writeInt(keepAlive);
+        NetUtil.writeVarInt(buf, keepAlive);
     }
 
 }

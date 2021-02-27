@@ -1,11 +1,12 @@
 package de.maxhenkel.voicechat.voice.common;
 
+import de.maxhenkel.voicechat.net.NetUtil;
 import de.maxhenkel.voicechat.voice.server.ClientConnection;
 import de.maxhenkel.voicechat.voice.server.Server;
-import io.netty.buffer.Unpooled;
-import net.minecraft.network.PacketByteBuf;
-
-import javax.annotation.Nonnull;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -13,6 +14,7 @@ import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import javax.annotation.Nonnull;
 
 public class NetworkMessage {
 
@@ -82,7 +84,8 @@ public class NetworkMessage {
         byte[] data = new byte[packet.getLength()];
         System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
 
-        PacketByteBuf buffer = new PacketByteBuf(Unpooled.wrappedBuffer(data));
+        ByteArrayInputStream bais = new ByteArrayInputStream(data);
+        DataInputStream buffer = new DataInputStream(bais);
         long sequenceNumber = buffer.readLong();
         byte packetType = buffer.readByte();
         Class<? extends Packet> packetClass = packetRegistry.get(packetType);
@@ -94,7 +97,7 @@ public class NetworkMessage {
         NetworkMessage message = new NetworkMessage();
         message.sequenceNumber = sequenceNumber;
         if (buffer.readBoolean()) {
-            message.secret = buffer.readUuid();
+            message.secret = NetUtil.readUUID(buffer);
         }
         message.address = packet.getSocketAddress();
         message.packet = p.fromBytes(buffer);
@@ -115,8 +118,9 @@ public class NetworkMessage {
         return -1;
     }
 
-    public byte[] write(long sequenceNumber) {
-        PacketByteBuf buffer = new PacketByteBuf(Unpooled.buffer());
+    public byte[] write(long sequenceNumber) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream buffer = new DataOutputStream(baos);
 
         buffer.writeLong(sequenceNumber);
         byte type = getPacketType(packet);
@@ -128,11 +132,11 @@ public class NetworkMessage {
         buffer.writeByte(type);
         buffer.writeBoolean(secret != null);
         if (secret != null) {
-            buffer.writeUuid(secret);
+            NetUtil.writeUUID(buffer, secret);
         }
         packet.toBytes(buffer);
 
-        return buffer.array();
+        return baos.toByteArray();
     }
 
 }

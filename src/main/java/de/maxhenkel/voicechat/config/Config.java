@@ -1,14 +1,13 @@
 package de.maxhenkel.voicechat.config;
 
-
 import de.maxhenkel.voicechat.Voicechat;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.logging.Level;
 
 public class Config {
 
@@ -21,8 +20,8 @@ public class Config {
         try {
             load();
         } catch (IOException e) {
-            Voicechat.LOGGER.error("Failed to read " + path.getFileName().toString(), e);
-            Voicechat.LOGGER.warn("Using default configuration values");
+            Voicechat.LOGGER.log(Level.SEVERE, "Failed to read " + path.getFileName().toString(), e);
+            Voicechat.LOGGER.warning("Using default configuration values");
         }
     }
 
@@ -51,7 +50,7 @@ public class Config {
             file.getParentFile().mkdirs();
             properties.store(new FileWriter(file, false), "");
         } catch (IOException e) {
-            Voicechat.LOGGER.error("Failed to save " + path.getFileName().toString(), e);
+            Voicechat.LOGGER.log(Level.SEVERE, "Failed to save " + path.getFileName().toString(), e);
         }
     }
 

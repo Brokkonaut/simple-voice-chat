@@ -1,32 +1,41 @@
 package de.maxhenkel.voicechat.voice.server;
 
-import de.maxhenkel.voicechat.voice.common.*;
 import de.maxhenkel.voicechat.Voicechat;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.Box;
-
+import de.maxhenkel.voicechat.voice.common.AuthenticateAckPacket;
+import de.maxhenkel.voicechat.voice.common.AuthenticatePacket;
+import de.maxhenkel.voicechat.voice.common.KeepAlivePacket;
+import de.maxhenkel.voicechat.voice.common.MicPacket;
+import de.maxhenkel.voicechat.voice.common.NetworkMessage;
+import de.maxhenkel.voicechat.voice.common.Packet;
+import de.maxhenkel.voicechat.voice.common.PingPacket;
+import de.maxhenkel.voicechat.voice.common.SoundPacket;
+import de.maxhenkel.voicechat.voice.common.Utils;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import org.bukkit.entity.Player;
 
 public class Server extends Thread {
 
     private Map<UUID, ClientConnection> connections;
     private Map<UUID, UUID> secrets;
     private int port;
-    private MinecraftServer server;
+    private org.bukkit.Server server;
     private DatagramSocket socket;
     private ProcessThread processThread;
     private List<NetworkMessage> packetQueue;
     private PingManager pingManager;
 
-    public Server(int port, MinecraftServer server) {
+    public Server(int port, org.bukkit.Server server) {
         this.port = port;
         this.server = server;
         connections = new HashMap<>();
@@ -49,7 +58,7 @@ public class Server extends Thread {
                     address = InetAddress.getByName(addr);
                 }
             } catch (Exception e) {
-                Voicechat.LOGGER.error("Failed to parse bind IP address '" + addr + "'");
+                Voicechat.LOGGER.severe("Failed to parse bind IP address '" + addr + "'");
                 Voicechat.LOGGER.info("Binding to default IP address");
                 e.printStackTrace();
             }
@@ -57,7 +66,7 @@ public class Server extends Thread {
                 socket = new DatagramSocket(port, address);
                 socket.setTrafficClass(0x04); // IPTOS_RELIABILITY
             } catch (BindException e) {
-                Voicechat.LOGGER.error("Failed to bind to address '" + addr + "'");
+                Voicechat.LOGGER.severe("Failed to bind to address '" + addr + "'");
                 e.printStackTrace();
                 System.exit(1);
                 return;
@@ -130,7 +139,7 @@ public class Server extends Thread {
                             if (!connections.containsKey(packet.getPlayerUUID())) {
                                 connection = new ClientConnection(packet.getPlayerUUID(), message.getAddress());
                                 connections.put(packet.getPlayerUUID(), connection);
-                                Voicechat.LOGGER.info("Successfully authenticated player {}", packet.getPlayerUUID());
+                                Voicechat.LOGGER.info("Successfully authenticated player " + packet.getPlayerUUID());
                             } else {
                                 connection = connections.get(packet.getPlayerUUID());
                             }
@@ -155,26 +164,14 @@ public class Server extends Thread {
 
                     if (message.getPacket() instanceof MicPacket) {
                         MicPacket packet = (MicPacket) message.getPacket();
-                        ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerUUID);
+                        Player player = server.getPlayer(playerUUID);
                         if (player == null) {
                             continue;
                         }
                         double distance = Voicechat.SERVER_CONFIG.voiceChatDistance.get();
-                        List<ClientConnection> closeConnections = player.world
-                                .getEntitiesByClass(
-                                        PlayerEntity.class,
-                                        new Box(
-                                                player.getX() - distance,
-                                                player.getY() - distance,
-                                                player.getZ() - distance,
-                                                player.getX() + distance,
-                                                player.getY() + distance,
-                                                player.getZ() + distance
-                                        )
-                                        , playerEntity -> !playerEntity.getUuid().equals(player.getUuid())
-                                )
+                        List<ClientConnection> closeConnections = player.getWorld().getNearbyEntitiesByType(Player.class, player.getLocation(), distance, playerEntity -> !playerEntity.getUniqueId().equals(player.getUniqueId()))
                                 .stream()
-                                .map(playerEntity -> connections.get(playerEntity.getUuid()))
+                                .map(playerEntity -> connections.get(playerEntity.getUniqueId()))
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
                         NetworkMessage soundMessage = new NetworkMessage(new SoundPacket(playerUUID, packet.getData()));
@@ -205,13 +202,11 @@ public class Server extends Thread {
         for (ClientConnection connection : connections.values()) {
             if (timestamp - connection.getLastKeepAliveResponse() >= Voicechat.SERVER_CONFIG.keepAlive.get() * 10L) {
                 disconnectClient(connection.getPlayerUUID());
-                Voicechat.LOGGER.info("Player {} timed out", connection.getPlayerUUID());
-                ServerPlayerEntity player = server.getPlayerManager().getPlayer(connection.getPlayerUUID());
+                Voicechat.LOGGER.info("Player " + connection.getPlayerUUID() + " timed out");
+                Player player = server.getPlayer(connection.getPlayerUUID());
                 if (player != null) {
-                    Voicechat.LOGGER.info("Reconnecting player {}", player.getDisplayName().getString());
+                    Voicechat.LOGGER.info("Reconnecting player " + player.getDisplayName());
                     Voicechat.SERVER.initializePlayerConnection(player);
-                } else {
-                    Voicechat.LOGGER.warn("Reconnecting player {} failed (Could not find player)", player.getDisplayName().getString());
                 }
             } else if (timestamp - connection.getLastKeepAlive() >= Voicechat.SERVER_CONFIG.keepAlive.get()) {
                 connection.setLastKeepAlive(timestamp);

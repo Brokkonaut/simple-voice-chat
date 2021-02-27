@@ -1,6 +1,7 @@
 package de.maxhenkel.voicechat.voice.common;
 
-import net.minecraft.network.PacketByteBuf;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 
 public class AuthenticateAckPacket implements Packet<AuthenticateAckPacket> {
 
@@ -9,13 +10,13 @@ public class AuthenticateAckPacket implements Packet<AuthenticateAckPacket> {
     }
 
     @Override
-    public AuthenticateAckPacket fromBytes(PacketByteBuf buf) {
+    public AuthenticateAckPacket fromBytes(DataInputStream buf) {
         AuthenticateAckPacket packet = new AuthenticateAckPacket();
         return packet;
     }
 
     @Override
-    public void toBytes(PacketByteBuf buf) {
+    public void toBytes(DataOutputStream buf) {
 
     }
 }

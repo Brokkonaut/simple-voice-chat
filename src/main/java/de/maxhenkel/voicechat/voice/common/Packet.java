@@ -1,11 +1,13 @@
 package de.maxhenkel.voicechat.voice.common;
 
-import net.minecraft.network.PacketByteBuf;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 public interface Packet<T extends Packet> {
 
-    T fromBytes(PacketByteBuf buf);
+    T fromBytes(DataInputStream buf) throws IOException;
 
-    void toBytes(PacketByteBuf buf);
+    void toBytes(DataOutputStream buf) throws IOException;
 
 }

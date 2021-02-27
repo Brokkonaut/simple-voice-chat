@@ -1,11 +1,5 @@
 package de.maxhenkel.voicechat.voice.common;
 
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-
 public class Utils {
 
     public static void sleep(int ms) {
@@ -27,13 +21,15 @@ public class Utils {
      * Changes the volume of 16 bit audio
      * Note that this modifies the input array
      *
-     * @param audio  the audio data
-     * @param volume the amplification
+     * @param audio
+     *            the audio data
+     * @param volume
+     *            the amplification
      * @return the adjusted audio
      */
     public static byte[] adjustVolumeMono(byte[] audio, float volume) {
         for (int i = 0; i < audio.length; i += 2) {
-            short audioSample = bytesToShort(audio[i], audio[i + 1]); //(short) (((audio[i + 1] & 0xff) << 8) | (audio[i] & 0xff));
+            short audioSample = bytesToShort(audio[i], audio[i + 1]); // (short) (((audio[i + 1] & 0xff) << 8) | (audio[i] & 0xff));
 
             audioSample = (short) (audioSample * volume);
 
@@ -48,14 +44,17 @@ public class Utils {
      * Changes the volume of 16 bit audio
      * Note that this modifies the input array
      *
-     * @param audio       the audio data
-     * @param volumeLeft  the amplification of the left audio
-     * @param volumeRight the amplification of the right audio
+     * @param audio
+     *            the audio data
+     * @param volumeLeft
+     *            the amplification of the left audio
+     * @param volumeRight
+     *            the amplification of the right audio
      * @return the adjusted audio
      */
     public static byte[] adjustVolumeStereo(byte[] audio, float volumeLeft, float volumeRight) {
         for (int i = 0; i < audio.length; i += 2) {
-            short audioSample = bytesToShort(audio[i], audio[i + 1]); //(short) (((audio[i + 1] & 0xff) << 8) | (audio[i] & 0xff));
+            short audioSample = bytesToShort(audio[i], audio[i + 1]); // (short) (((audio[i + 1] & 0xff) << 8) | (audio[i] & 0xff));
 
             audioSample = (short) (audioSample * (i % 4 == 0 ? volumeLeft : volumeRight));
 
@@ -69,7 +68,8 @@ public class Utils {
     /**
      * Convorts 16 bit mono audio to stereo
      *
-     * @param audio the audio data
+     * @param audio
+     *            the audio data
      * @return the adjusted audio
      */
     public static byte[] convertToStereo(byte[] audio) {
@@ -87,15 +87,18 @@ public class Utils {
     /**
      * Convorts 16 bit mono audio to stereo
      *
-     * @param audio       the audio data
-     * @param volumeLeft  the volume modifier for the left audio
-     * @param volumeRight tthe volume modifier for the right audio
+     * @param audio
+     *            the audio data
+     * @param volumeLeft
+     *            the volume modifier for the left audio
+     * @param volumeRight
+     *            tthe volume modifier for the right audio
      * @return the adjusted audio
      */
     public static byte[] convertToStereo(byte[] audio, float volumeLeft, float volumeRight) {
         byte[] stereo = new byte[audio.length * 2];
         for (int i = 0; i < audio.length; i += 2) {
-            short audioSample = bytesToShort(audio[i], audio[i + 1]);//(short) (((audio[i + 1] & 0xff) << 8) | (audio[i] & 0xff));
+            short audioSample = bytesToShort(audio[i], audio[i + 1]);// (short) (((audio[i + 1] & 0xff) << 8) | (audio[i] & 0xff));
             short left = (short) (audioSample * volumeLeft);
             short right = (short) (audioSample * volumeRight);
             stereo[i * 2] = (byte) left;
@@ -107,64 +110,15 @@ public class Utils {
         return stereo;
     }
 
-    public static Pair<Float, Float> getStereoVolume(Vec3d playerPos, float yaw, Vec3d soundPos, double voiceChatDistance) {
-        Vec3d d = soundPos.subtract(playerPos).normalize();
-        Vec2f diff = new Vec2f((float) d.x, (float) d.z);
-        float diffAngle = angle(diff, new Vec2f(-1F, 0F));
-        float angle = normalizeAngle(diffAngle - (yaw % 360F));
-        float dif = (float) (Math.abs(playerPos.y - soundPos.y) / voiceChatDistance);
-
-        float rot = angle / 180F;
-        float perc = rot;
-        if (rot < -0.5F) {
-            perc = -(0.5F + (rot + 0.5F));
-        } else if (rot > 0.5F) {
-            perc = 0.5F - (rot - 0.5F);
-        }
-        perc = perc * (1 - dif);
-
-        float left = perc < 0F ? Math.abs(perc * 1.4F) + 0.3F : 0.3F;
-        float right = perc >= 0F ? (perc * 1.4F) + 0.3F : 0.3F;
-
-        float fill = 1F - Math.max(left, right);
-        left += fill;
-        right += fill;
-
-        return new ImmutablePair<>(left, right);
-    }
-
-    private static float normalizeAngle(float angle) {
-        angle = angle % 360F;
-        if (angle <= -180F) {
-            angle += 360F;
-        } else if (angle > 180F) {
-            angle -= 360F;
-        }
-        return angle;
-    }
-
-    private static float angle(Vec2f vec1, Vec2f vec2) {
-        return (float) Math.toDegrees(Math.atan2(vec1.x * vec2.x + vec1.y * vec2.y, vec1.x * vec2.y - vec1.y * vec2.x));
-    }
-
-    private static float magnitude(Vec2f vec1) {
-        return MathHelper.sqrt(Math.pow(vec1.x, 2) + Math.pow(vec1.y, 2));
-    }
-
-    private static float multiply(Vec2f vec1, Vec2f vec2) {
-        return vec1.x * vec2.x + vec1.y * vec2.y;
-    }
-
-    private static Vec2f rotate(Vec2f vec, float angle) {
-        return new Vec2f(vec.x * MathHelper.cos(angle) - vec.y * MathHelper.sin(angle), vec.x * MathHelper.sin(angle) + vec.y * MathHelper.cos(angle));
-    }
-
     /**
      * Calculates the audio level of a signal with specific samples.
      *
-     * @param samples the samples of the signal to calculate the audio level of
-     * @param offset  the offset in samples in which the samples start
-     * @param length  the length in bytes of the signal in samples starting at offset
+     * @param samples
+     *            the samples of the signal to calculate the audio level of
+     * @param offset
+     *            the offset in samples in which the samples start
+     * @param length
+     *            the length in bytes of the signal in samples starting at offset
      * @return the audio level of the specified signal in db
      */
     public static double calculateAudioLevel(byte[] samples, int offset, int length) {
@@ -193,7 +147,8 @@ public class Utils {
     /**
      * Calculates the highest audio level in packs of 100
      *
-     * @param samples the audio samples
+     * @param samples
+     *            the audio samples
      * @return the audio level in db
      */
     public static double getHighestAudioLevel(byte[] samples) {
@@ -210,8 +165,10 @@ public class Utils {
     /**
      * Gets the offset of the highest audio level in packs of 100
      *
-     * @param samples         the audio samples
-     * @param activationLevel the activation threshold
+     * @param samples
+     *            the audio samples
+     * @param activationLevel
+     *            the activation threshold
      * @return the audio level in db
      */
     public static int getActivationOffset(byte[] samples, double activationLevel) {
@@ -228,7 +185,8 @@ public class Utils {
     /**
      * Converts a dB value to a percentage value (-127 - 0) - (0 - 1)
      *
-     * @param db the decibel value
+     * @param db
+     *            the decibel value
      * @return the percantage
      */
     public static double dbToPerc(double db) {
@@ -238,7 +196,8 @@ public class Utils {
     /**
      * Converts a percentage to a dB value (0 - 1) - (-127 - 0)
      *
-     * @param perc the percantage
+     * @param perc
+     *            the percantage
      * @return the decibel value
      */
     public static double percToDb(double perc) {

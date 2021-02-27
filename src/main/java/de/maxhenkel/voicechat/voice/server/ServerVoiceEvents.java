@@ -1,65 +1,77 @@
 package de.maxhenkel.voicechat.voice.server;
 
 import de.maxhenkel.voicechat.Voicechat;
-import de.maxhenkel.voicechat.events.PlayerEvents;
 import de.maxhenkel.voicechat.net.InitPacket;
 import de.maxhenkel.voicechat.net.Packets;
-import io.netty.buffer.Unpooled;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.network.ServerSidePacketRegistry;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.dedicated.MinecraftDedicatedServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-
-import javax.annotation.Nullable;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.UUID;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
-public class ServerVoiceEvents {
+public class ServerVoiceEvents implements Listener {
 
+    private Voicechat plugin;
     private Server server;
 
-    public ServerVoiceEvents() {
-        ServerLifecycleEvents.SERVER_STARTED.register(this::serverStarting);
-        PlayerEvents.PLAYER_LOGGED_IN.register(this::initializePlayerConnection);
-        PlayerEvents.PLAYER_LOGGED_OUT.register(this::playerLoggedOut);
+    public ServerVoiceEvents(Voicechat plugin) {
+        this.plugin = plugin;
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        serverStarting(plugin.getServer());
     }
 
-    public void serverStarting(MinecraftServer mcServer) {
+    public void serverStarting(org.bukkit.Server mcServer) {
         if (server != null) {
             server.close();
             server = null;
         }
-        if (mcServer instanceof MinecraftDedicatedServer) {
-            try {
-                server = new Server(Voicechat.SERVER_CONFIG.voiceChatPort.get(), mcServer);
-                server.start();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        try {
+            server = new Server(Voicechat.SERVER_CONFIG.voiceChatPort.get(), mcServer);
+            server.start();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    public void initializePlayerConnection(ServerPlayerEntity player) {
-        if (server == null) {
-            return;
-        }
-
-        UUID secret = server.getSecret(player.getUuid());
-        InitPacket packet = new InitPacket(secret, Voicechat.SERVER_CONFIG.voiceChatPort.get(), Voicechat.SERVER_CONFIG.voiceChatSampleRate.get(), Voicechat.SERVER_CONFIG.voiceChatMtuSize.get(), Voicechat.SERVER_CONFIG.voiceChatDistance.get(), Voicechat.SERVER_CONFIG.voiceChatFadeDistance.get(), Voicechat.SERVER_CONFIG.keepAlive.get());
-        PacketByteBuf buffer = new PacketByteBuf(Unpooled.buffer());
-        packet.toBytes(buffer);
-        ServerSidePacketRegistry.INSTANCE.sendToPlayer(player, Packets.SECRET, buffer);
-        Voicechat.LOGGER.info("Sent secret to " + player.getDisplayName().getString());
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent e) {
+        initializePlayerConnection(e.getPlayer());
     }
 
-    public void playerLoggedOut(ServerPlayerEntity player) {
+    @EventHandler
+    public void initializePlayerConnection(Player player) {
         if (server == null) {
             return;
         }
+        UUID secret = server.getSecret(player.getUniqueId());
+        InitPacket packet = new InitPacket(secret, Voicechat.SERVER_CONFIG.voiceChatPort.get(), Voicechat.SERVER_CONFIG.voiceChatSampleRate.get(), Voicechat.SERVER_CONFIG.voiceChatMtuSize.get(), Voicechat.SERVER_CONFIG.voiceChatDistance.get(), Voicechat.SERVER_CONFIG.voiceChatFadeDistance.get(),
+                Voicechat.SERVER_CONFIG.keepAlive.get());
 
-        server.disconnectClient(player.getUuid());
-        Voicechat.LOGGER.info("Disconnecting client " + player.getDisplayName().getString());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            packet.toBytes(new DataOutputStream(baos));
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not create player list packet", e);
+        }
+        player.sendPluginMessage(plugin, Packets.SECRET, baos.toByteArray());
+        Voicechat.LOGGER.info("Sent secret to " + player.getDisplayName());
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent e) {
+        if (server == null) {
+            return;
+        }
+        Player player = e.getPlayer();
+
+        server.disconnectClient(player.getUniqueId());
+        Voicechat.LOGGER.info("Disconnecting client " + player.getDisplayName());
     }
 
     @Nullable

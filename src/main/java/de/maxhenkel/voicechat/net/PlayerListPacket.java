@@ -1,9 +1,8 @@
 package de.maxhenkel.voicechat.net;
 
 import de.maxhenkel.voicechat.PlayerInfo;
-import net.minecraft.network.PacketByteBuf;
-
-import java.util.ArrayList;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 public class PlayerListPacket {
@@ -18,22 +17,11 @@ public class PlayerListPacket {
         return players;
     }
 
-    public static PlayerListPacket fromBytes(PacketByteBuf buf) {
-        int count = buf.readInt();
-        List<PlayerInfo> players = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            players.add(new PlayerInfo(buf.readUuid(), buf.readText()));
-        }
-
-        return new PlayerListPacket(players);
-    }
-
-    public void toBytes(PacketByteBuf buf) {
-        buf.writeInt(players.size());
+    public void toBytes(DataOutputStream buf) throws IOException {
+        NetUtil.writeVarInt(buf, players.size());
         for (PlayerInfo info : players) {
-            buf.writeUuid(info.getUuid());
-            buf.writeText(info.getName());
+            NetUtil.writeUUID(buf, info.getUuid());
+            NetUtil.writeComponent(buf, info.getName());
         }
     }
-
 }

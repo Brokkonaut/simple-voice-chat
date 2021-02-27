@@ -1,8 +1,7 @@
 package de.maxhenkel.voicechat.voice.server;
 
-import de.maxhenkel.voicechat.voice.common.PingPacket;
 import de.maxhenkel.voicechat.Voicechat;
-
+import de.maxhenkel.voicechat.voice.common.PingPacket;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +21,7 @@ public class PingManager {
     }
 
     public void onPongPacket(PingPacket packet) {
-        Voicechat.LOGGER.debug("Received pong {}", packet.getId());
+        Voicechat.LOGGER.info("Received pong " + packet.getId());
         Ping ping = listeners.get(packet.getId());
         if (ping == null) {
             return;
@@ -43,7 +42,7 @@ public class PingManager {
         UUID id = UUID.randomUUID();
         long timestamp = System.currentTimeMillis();
         server.sendPacket(new PingPacket(id, timestamp), connection);
-        Voicechat.LOGGER.debug("Sent ping {}", id);
+        Voicechat.LOGGER.info("Sent ping " + id);
         listeners.put(id, new Ping(listener, timestamp, timeout));
     }
 

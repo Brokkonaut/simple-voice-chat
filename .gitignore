@@ -118,3 +118,7 @@ run/
 !gradle-wrapper.jar
 
 curseforge_api_key.txt
+/.classpath
+/.project
+/.settings
+/target

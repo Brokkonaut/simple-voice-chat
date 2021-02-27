@@ -1,7 +1,9 @@
 package de.maxhenkel.voicechat.voice.common;
 
-import net.minecraft.network.PacketByteBuf;
-
+import de.maxhenkel.voicechat.net.NetUtil;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.UUID;
 
 public class PingPacket implements Packet<PingPacket> {
@@ -27,16 +29,16 @@ public class PingPacket implements Packet<PingPacket> {
     }
 
     @Override
-    public PingPacket fromBytes(PacketByteBuf buf) {
+    public PingPacket fromBytes(DataInputStream buf) throws IOException {
         PingPacket soundPacket = new PingPacket();
-        soundPacket.id = buf.readUuid();
+        soundPacket.id = NetUtil.readUUID(buf);
         soundPacket.timestamp = buf.readLong();
         return soundPacket;
     }
 
     @Override
-    public void toBytes(PacketByteBuf buf) {
-        buf.writeUuid(id);
+    public void toBytes(DataOutputStream buf) throws IOException {
+        NetUtil.writeUUID(buf, id);
         buf.writeLong(timestamp);
     }
 }

@@ -9,18 +9,19 @@ import de.maxhenkel.voicechat.voice.common.NetworkMessage;
 import de.maxhenkel.voicechat.voice.common.Packet;
 import de.maxhenkel.voicechat.voice.common.PingPacket;
 import de.maxhenkel.voicechat.voice.common.SoundPacket;
-import de.maxhenkel.voicechat.voice.common.Utils;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -34,16 +35,16 @@ public class Server extends Thread {
     private org.bukkit.Server server;
     private DatagramSocket socket;
     private ProcessThread processThread;
-    private List<NetworkMessage> packetQueue;
+    private BlockingQueue<NetworkMessage> packetQueue;
     private PingManager pingManager;
 
     public Server(int port, Voicechat plugin) {
         this.plugin = plugin;
         this.port = port;
         this.server = plugin.getServer();
-        connections = new HashMap<>();
-        secrets = new HashMap<>();
-        packetQueue = new ArrayList<>();
+        connections = new ConcurrentHashMap<>();
+        secrets = new ConcurrentHashMap<>();
+        packetQueue = new LinkedBlockingQueue<>();
         pingManager = new PingManager(this);
         setDaemon(true);
         setName("VoiceChatServerThread");
@@ -79,7 +80,7 @@ public class Server extends Thread {
             while (!socket.isClosed()) {
                 try {
                     NetworkMessage message = NetworkMessage.readPacket(socket);
-                    packetQueue.add(message);
+                    packetQueue.put(message);
                 } catch (Exception e) {
                 }
             }
@@ -123,14 +124,10 @@ public class Server extends Thread {
                 try {
                     pingManager.checkTimeouts();
                     keepAlive();
-                    if (packetQueue.isEmpty()) {
-                        Utils.sleep(10);
-                        continue;
-                    }
 
-                    NetworkMessage message = packetQueue.get(0);
-                    packetQueue.remove(message);
-                    if (System.currentTimeMillis() - message.getTimestamp() > message.getTTL()) {
+                    NetworkMessage message = packetQueue.poll(10, TimeUnit.MILLISECONDS);
+
+                    if (message == null || System.currentTimeMillis() - message.getTimestamp() > message.getTTL()) {
                         continue;
                     }
 

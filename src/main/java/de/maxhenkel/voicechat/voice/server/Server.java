@@ -23,21 +23,24 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class Server extends Thread {
 
     private Map<UUID, ClientConnection> connections;
     private Map<UUID, UUID> secrets;
     private int port;
+    private Voicechat plugin;
     private org.bukkit.Server server;
     private DatagramSocket socket;
     private ProcessThread processThread;
     private List<NetworkMessage> packetQueue;
     private PingManager pingManager;
 
-    public Server(int port, org.bukkit.Server server) {
+    public Server(int port, Voicechat plugin) {
+        this.plugin = plugin;
         this.port = port;
-        this.server = server;
+        this.server = plugin.getServer();
         connections = new HashMap<>();
         secrets = new HashMap<>();
         packetQueue = new ArrayList<>();
@@ -169,17 +172,26 @@ public class Server extends Thread {
                             continue;
                         }
                         double distance = Voicechat.SERVER_CONFIG.voiceChatDistance.get();
-                        List<ClientConnection> closeConnections = player.getWorld().getNearbyEntitiesByType(Player.class, player.getLocation(), distance, playerEntity -> !playerEntity.getUniqueId().equals(player.getUniqueId()))
-                                .stream()
-                                .map(playerEntity -> connections.get(playerEntity.getUniqueId()))
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList());
-                        NetworkMessage soundMessage = new NetworkMessage(new SoundPacket(playerUUID, packet.getData()));
-                        for (ClientConnection clientConnection : closeConnections) {
-                            if (!clientConnection.getPlayerUUID().equals(playerUUID)) {
-                                clientConnection.send(socket, soundMessage);
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                List<ClientConnection> closeConnections = player.getWorld().getNearbyEntitiesByType(Player.class, player.getLocation(), distance, playerEntity -> !playerEntity.getUniqueId().equals(player.getUniqueId()))
+                                        .stream()
+                                        .map(playerEntity -> connections.get(playerEntity.getUniqueId()))
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList());
+                                NetworkMessage soundMessage = new NetworkMessage(new SoundPacket(playerUUID, packet.getData()));
+                                for (ClientConnection clientConnection : closeConnections) {
+                                    if (!clientConnection.getPlayerUUID().equals(playerUUID)) {
+                                        try {
+                                            clientConnection.send(socket, soundMessage);
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                }
                             }
-                        }
+                        }.runTask(plugin);
                     } else if (message.getPacket() instanceof PingPacket) {
                         pingManager.onPongPacket((PingPacket) message.getPacket());
                     } else if (message.getPacket() instanceof KeepAlivePacket) {

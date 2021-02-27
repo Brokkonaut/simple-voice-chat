@@ -25,16 +25,16 @@ public class ServerVoiceEvents implements Listener {
     public ServerVoiceEvents(Voicechat plugin) {
         this.plugin = plugin;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        serverStarting(plugin.getServer());
+        serverStarting();
     }
 
-    public void serverStarting(org.bukkit.Server mcServer) {
+    public void serverStarting() {
         if (server != null) {
             server.close();
             server = null;
         }
         try {
-            server = new Server(Voicechat.SERVER_CONFIG.voiceChatPort.get(), mcServer);
+            server = new Server(Voicechat.SERVER_CONFIG.voiceChatPort.get(), plugin);
             server.start();
         } catch (Exception e) {
             e.printStackTrace();

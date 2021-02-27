@@ -1,0 +1,9 @@
+name: Voicechat
+
+main: de.maxhenkel.voicechat.Voicechat
+
+version: "0.7.1"
+api-version: 1.16
+
+authors: [Max Henkel, Brokkonaut]
+description: Voicechat

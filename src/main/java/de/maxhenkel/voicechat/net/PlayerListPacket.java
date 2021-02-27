@@ -18,7 +18,8 @@ public class PlayerListPacket {
     }
 
     public void toBytes(DataOutputStream buf) throws IOException {
-        NetUtil.writeVarInt(buf, players.size());
+        // NetUtil.writeVarInt(buf, players.size());
+        buf.writeInt(players.size());
         for (PlayerInfo info : players) {
             NetUtil.writeUUID(buf, info.getUuid());
             NetUtil.writeComponent(buf, info.getName());

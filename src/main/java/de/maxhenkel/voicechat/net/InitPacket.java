@@ -54,12 +54,16 @@ public class InitPacket {
 
     public void toBytes(DataOutputStream buf) throws IOException {
         NetUtil.writeUUID(buf, secret);
-        NetUtil.writeVarInt(buf, serverPort);
-        NetUtil.writeVarInt(buf, sampleRate);
-        NetUtil.writeVarInt(buf, mtuSize);
+        buf.writeInt(serverPort);
+        buf.writeInt(sampleRate);
+        buf.writeInt(mtuSize);
+        // NetUtil.writeVarInt(buf, serverPort);
+        // NetUtil.writeVarInt(buf, sampleRate);
+        // NetUtil.writeVarInt(buf, mtuSize);
         buf.writeDouble(voiceChatDistance);
         buf.writeDouble(voiceChatFadeDistance);
-        NetUtil.writeVarInt(buf, keepAlive);
+        buf.writeInt(keepAlive);
+        // NetUtil.writeVarInt(buf, keepAlive);
     }
 
 }

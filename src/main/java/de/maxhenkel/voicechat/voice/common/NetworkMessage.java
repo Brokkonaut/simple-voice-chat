@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
@@ -77,7 +78,7 @@ public class NetworkMessage {
         packetRegistry.put((byte) 5, KeepAlivePacket.class);
     }
 
-    public static NetworkMessage readPacket(DatagramSocket socket) throws IllegalAccessException, InstantiationException, IOException {
+    public static NetworkMessage readPacket(DatagramSocket socket) throws IllegalAccessException, InstantiationException, IOException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
         // 4096 is the maximum packet size a packet can have with 44100 hz
         DatagramPacket packet = new DatagramPacket(new byte[4096], 4096);
         socket.receive(packet);
@@ -92,7 +93,7 @@ public class NetworkMessage {
         if (packetClass == null) {
             throw new InstantiationException("Could not find packet with ID " + packetType);
         }
-        Packet<? extends Packet<?>> p = packetClass.newInstance();
+        Packet<? extends Packet<?>> p = packetClass.getConstructor().newInstance();
 
         NetworkMessage message = new NetworkMessage();
         message.sequenceNumber = sequenceNumber;

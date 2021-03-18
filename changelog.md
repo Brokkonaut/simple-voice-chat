@@ -1,1 +1,1 @@
-- Fixed microphone indicator not being transparent
+- Cleaned up netcode

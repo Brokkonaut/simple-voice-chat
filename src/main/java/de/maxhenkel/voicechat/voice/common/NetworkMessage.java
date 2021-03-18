@@ -24,7 +24,6 @@ public class NetworkMessage {
     private Packet<? extends Packet> packet;
     private UUID secret;
     private SocketAddress address;
-    private long sequenceNumber;
 
     public NetworkMessage(Packet<?> packet, UUID secret) {
         this(packet);
@@ -62,10 +61,6 @@ public class NetworkMessage {
         return address;
     }
 
-    public long getSequenceNumber() {
-        return sequenceNumber;
-    }
-
     private static final Map<Byte, Class<? extends Packet>> packetRegistry;
 
     static {
@@ -87,7 +82,6 @@ public class NetworkMessage {
 
         ByteArrayInputStream bais = new ByteArrayInputStream(data);
         DataInputStream buffer = new DataInputStream(bais);
-        long sequenceNumber = buffer.readLong();
         byte packetType = buffer.readByte();
         Class<? extends Packet> packetClass = packetRegistry.get(packetType);
         if (packetClass == null) {
@@ -96,7 +90,6 @@ public class NetworkMessage {
         Packet<? extends Packet<?>> p = packetClass.getConstructor().newInstance();
 
         NetworkMessage message = new NetworkMessage();
-        message.sequenceNumber = sequenceNumber;
         if (buffer.readBoolean()) {
             message.secret = NetUtil.readUUID(buffer);
         }
@@ -119,11 +112,10 @@ public class NetworkMessage {
         return -1;
     }
 
-    public byte[] write(long sequenceNumber) throws IOException {
+    public byte[] write() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream buffer = new DataOutputStream(baos);
 
-        buffer.writeLong(sequenceNumber);
         byte type = getPacketType(packet);
 
         if (type < 0) {

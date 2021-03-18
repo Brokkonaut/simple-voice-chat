@@ -1,23 +1,32 @@
 package de.maxhenkel.voicechat.net;
 
+import de.maxhenkel.voicechat.Voicechat;
+import de.maxhenkel.voicechat.config.ServerConfig;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
-public class InitPacket {
+public class InitPacket implements Packet<InitPacket> {
+
+    public static final String SECRET = Voicechat.MODID + ":" + "secret";
 
     private UUID secret;
     private int serverPort;
-    private int sampleRate;
+    private ServerConfig.Codec codec;
     private int mtuSize;
     private double voiceChatDistance;
     private double voiceChatFadeDistance;
     private int keepAlive;
 
-    public InitPacket(UUID secret, int serverPort, int sampleRate, int mtuSize, double voiceChatDistance, double voiceChatFadeDistance, int keepAlive) {
+    public InitPacket() {
+
+    }
+
+    public InitPacket(UUID secret, int serverPort, ServerConfig.Codec codec, int mtuSize, double voiceChatDistance, double voiceChatFadeDistance, int keepAlive) {
         this.secret = secret;
         this.serverPort = serverPort;
-        this.sampleRate = sampleRate;
+        this.codec = codec;
         this.mtuSize = mtuSize;
         this.voiceChatDistance = voiceChatDistance;
         this.voiceChatFadeDistance = voiceChatFadeDistance;
@@ -32,8 +41,8 @@ public class InitPacket {
         return serverPort;
     }
 
-    public int getSampleRate() {
-        return sampleRate;
+    public ServerConfig.Codec getCodec() {
+        return codec;
     }
 
     public int getMtuSize() {
@@ -52,10 +61,21 @@ public class InitPacket {
         return keepAlive;
     }
 
+    @Override
+    public String getID() {
+        return SECRET;
+    }
+
+    @Override
+    public InitPacket fromBytes(DataInputStream buf) {
+        return this; // clientside only
+    }
+
+    @Override
     public void toBytes(DataOutputStream buf) throws IOException {
         NetUtil.writeUUID(buf, secret);
         buf.writeInt(serverPort);
-        buf.writeInt(sampleRate);
+        buf.writeByte(codec.ordinal());
         buf.writeInt(mtuSize);
         // NetUtil.writeVarInt(buf, serverPort);
         // NetUtil.writeVarInt(buf, sampleRate);

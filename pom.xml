@@ -9,6 +9,10 @@
             <id>destroystokyo-repo</id>
             <url>https://repo.destroystokyo.com/repository/maven-public/</url>
         </repository>
+        <repository>
+            <id>maxhenkel-repo</id>
+            <url>https://maven.maxhenkel.de/repository/public/</url>
+        </repository>
     </repositories>
     <dependencies>
         <dependency>
@@ -16,6 +20,11 @@
             <artifactId>paper-api</artifactId>
             <version>1.16.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.maxhenkel.opus4j</groupId>
+            <artifactId>opus4j</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>

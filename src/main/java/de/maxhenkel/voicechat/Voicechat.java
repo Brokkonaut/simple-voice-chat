@@ -4,6 +4,7 @@ import de.maxhenkel.voicechat.config.ConfigBuilder;
 import de.maxhenkel.voicechat.config.ServerConfig;
 import de.maxhenkel.voicechat.net.InitPacket;
 import de.maxhenkel.voicechat.net.PlayerListPacket;
+import de.maxhenkel.voicechat.net.PlayerStatesPacket;
 import de.maxhenkel.voicechat.net.RequestPlayerListPacket;
 import de.maxhenkel.voicechat.voice.server.ServerVoiceEvents;
 import java.io.ByteArrayOutputStream;
@@ -64,6 +65,7 @@ public class Voicechat extends JavaPlugin {
         getServer().getMessenger().registerOutgoingPluginChannel(this, INIT);
         getServer().getMessenger().registerOutgoingPluginChannel(this, InitPacket.SECRET);
         getServer().getMessenger().registerOutgoingPluginChannel(this, PlayerListPacket.PLAYER_LIST);
+        getServer().getMessenger().registerOutgoingPluginChannel(this, PlayerStatesPacket.PLAYER_STATES);
         // has to be sent a Login Plugin Response packet
         // getServer().getMessenger().registerIncomingPluginChannel(this, INIT, (packet, player, data) -> {
         // DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
